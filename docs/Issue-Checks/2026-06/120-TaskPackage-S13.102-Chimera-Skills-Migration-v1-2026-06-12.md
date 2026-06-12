@@ -2,7 +2,7 @@
 
 Date: 2026-06-12
 Branch: `codex/s13-102-chimera-skills-migration`
-Status: PASS_WITH_OPERATOR_ACTION
+Status: PASS
 Fork: `biexiaofeeng-boop/hermes-agent`
 Upstream: `NousResearch/hermes-agent`
 
@@ -293,7 +293,7 @@ First execution pass completed:
 - kept `chimera-prod-release-ops` disabled globally and on Telegram platform;
 - verified discovery: 3 Chimera local skills discovered, 2 enabled, 1 disabled;
 - verified Tavily missing-key behavior and script compilation;
-- skipped real-key Tavily smoke because `TAVILY_API_KEY` is not currently present in the eval profile `.env`;
+- verified real-key Tavily smoke after `TAVILY_API_KEY` was added to the eval profile `.env`;
 - simulated rollback by removing `skills.external_dirs` in a temporary Hermes home.
 
 Detailed evidence is recorded in `122-Checks-S13.102-Chimera-Skills-Migration-v1-2026-06-12.md`.

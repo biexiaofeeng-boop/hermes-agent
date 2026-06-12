@@ -99,7 +99,7 @@ hermes skills list --enabled-only
 | External dir wiring | profile `config.yaml` contains `skills.external_dirs` entry | PASS |
 | Web search skill | `chimera-web-search-tavily` is discovered | PASS |
 | Tavily missing key | fails closed with clear missing-env message | PASS |
-| Tavily real key | returns result without leaking key | TODO_OPERATOR_AUTH |
+| Tavily real key | returns result without leaking key | PASS |
 | Ops skill disabled | `chimera-prod-release-ops` is not shown by `--enabled-only` in non-ops profile | PASS |
 | Project skill skeleton | one project skill exists with resource refs and templates | PASS |
 | Secrets | no tracked literals for API keys/tokens | PASS_REFERENCES_ONLY |
@@ -282,7 +282,7 @@ env -u TAVILY_API_KEY tavily_search.py "OpenAI official docs home page" --count 
 PASS: state=missing_key, exit=1
 
 Tavily real-key smoke
-SKIP: TAVILY_API_KEY is not present in eval profile .env
+PASS: state=remote_success, result_count=2
 
 Hermes local skill audit
 N/A: `hermes skills audit` audits hub-installed skills only and reports "No hub-installed skills to audit."
@@ -301,8 +301,8 @@ The scan found only documented reference names such as `TAVILY_API_KEY` and poli
 
 ## Current Conclusion
 
-Status: PASS_WITH_OPERATOR_ACTION
+Status: PASS
 
-The S13.102 first execution pass is complete for local discovery, disabled ops guard, missing-key behavior, project skill skeleton, secret-reference hygiene, and rollback simulation.
+The S13.102 first execution pass is complete for local discovery, disabled ops guard, missing-key behavior, real-key Tavily connectivity, project skill skeleton, secret-reference hygiene, and rollback simulation.
 
-Remaining operator action: add `TAVILY_API_KEY` to the eval profile environment when ready, then run the real-key Tavily smoke test before treating `chimera-web-search-tavily` as fully online.
+`chimera-web-search-tavily` is online in the eval profile after `TAVILY_API_KEY` was added to the profile environment.
