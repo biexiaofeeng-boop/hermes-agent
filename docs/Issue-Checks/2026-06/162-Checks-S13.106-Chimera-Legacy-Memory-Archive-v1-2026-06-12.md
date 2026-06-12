@@ -2,7 +2,7 @@
 
 Date: 2026-06-12
 Branch: `codex/s13-106-legacy-memory-archive`
-Status: PASS_LOCAL_PENDING_PROD_APPLY
+Status: PASS
 
 ## Commands
 
@@ -33,9 +33,9 @@ python3 deploy/hermes-evaluation/chimera-legacy-memory/chimera_legacy_memory.py 
 | Search | Ctrip/US.TCOM excerpts found | PASS |
 | Export preview | card markdown generated | PASS |
 | Pointer dry-run | pointer text printed, no write | PASS |
-| Production cards | `chimera-memory-cards.md` exists | PENDING |
-| Production pointer | `MEMORY.md` contains one pointer | PENDING |
-| Gateway restart | not required / not performed | PENDING |
+| Production cards | `chimera-memory-cards.md` exists | PASS |
+| Production pointer | `MEMORY.md` contains one pointer | PASS |
+| Gateway restart | not required / not performed | PASS |
 
 ## Result Log
 
@@ -68,4 +68,40 @@ pointer dry-run: prints one MEMORY.md pointer and does not write
 
 ### Production Apply
 
-Pending merge and production sync.
+Production repo:
+
+```text
+/Users/sourcefire/X-lab/chimera-hermes-agent
+```
+
+HEAD after sync:
+
+```text
+1d404dd2f
+```
+
+Commands passed:
+
+```bash
+python3 -m py_compile deploy/hermes-evaluation/chimera-legacy-memory/chimera_legacy_memory.py
+python3 deploy/hermes-evaluation/chimera-legacy-memory/chimera_legacy_memory.py inspect
+python3 deploy/hermes-evaluation/chimera-legacy-memory/chimera_legacy_memory.py export-cards --write
+python3 deploy/hermes-evaluation/chimera-legacy-memory/chimera_legacy_memory.py install-pointer --write
+```
+
+Runtime outputs:
+
+```text
+wrote=/Users/sourcefire/X-lab/chimera-hermes-agent/.runtime/hermes-profiles/eval/workspace/chimera-history/chimera-memory-cards.md
+pointer=installed path=/Users/sourcefire/X-lab/chimera-hermes-agent/.runtime/hermes-profiles/eval/memories/MEMORY.md backup=/Users/sourcefire/X-lab/chimera-hermes-agent/.runtime/hermes-profiles/eval/memories/MEMORY.md.bak.s13-106
+chimera-memory-cards.md: 102 lines
+MEMORY.md pointer: present once
+```
+
+Gateway restart: not required and not performed.
+
+Production git status after runtime apply:
+
+```text
+## main...origin/main
+```
