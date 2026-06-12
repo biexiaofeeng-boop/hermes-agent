@@ -30,6 +30,7 @@ The template declares:
 ```yaml
 model:
   supports_vision: true
+  context_length: 1048576
 agent:
   image_input_mode: auto
 providers:
