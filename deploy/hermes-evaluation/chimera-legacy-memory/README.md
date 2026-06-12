@@ -47,3 +47,19 @@ python3 deploy/hermes-evaluation/chimera-legacy-memory/chimera_legacy_memory.py 
 ## Secret Boundary
 
 The helper reads only old Nanobot session JSONL files. It skips `.env`, `secrets.env`, `config.json`, and backup config/secret files.
+
+## Import Cards Into Session Search
+
+Dry-run:
+
+```bash
+python3 deploy/hermes-evaluation/chimera-legacy-memory/chimera_legacy_memory.py import-cards-session
+```
+
+Write selected cards as isolated synthetic Hermes sessions:
+
+```bash
+python3 deploy/hermes-evaluation/chimera-legacy-memory/chimera_legacy_memory.py import-cards-session --write
+```
+
+This imports only compact memory cards, not full raw Chimera history. Each card is a separate session with id prefix `chimera_legacy_card:` so `session_search` can retrieve the right topic without mixing Ctrip and Lenovo context.

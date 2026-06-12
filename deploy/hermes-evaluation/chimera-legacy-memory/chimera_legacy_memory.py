@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
+import sqlite3
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -111,6 +113,10 @@ def old_home_from_args(args: argparse.Namespace) -> Path:
 
 def hermes_home_from_args(args: argparse.Namespace) -> Path:
     return Path(args.hermes_home or os.environ.get("HERMES_HOME") or DEFAULT_HERMES_HOME)
+
+
+def hermes_state_db_from_args(args: argparse.Namespace) -> Path:
+    return Path(args.state_db) if getattr(args, "state_db", "") else hermes_home_from_args(args) / "state.db"
 
 
 def session_dir(old_home: Path) -> Path:
@@ -254,6 +260,27 @@ def build_cards(old_home: Path, max_hits: int) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def build_card_session_content(old_home: Path, card: CardSpec, max_hits: int = 2) -> str:
+    hits = search_messages(old_home, list(card.terms), max_hits, source_files=card.source_files)
+    lines = [
+        f"Chimera legacy memory card: {card.title}",
+        f"Card ID: {card.card_id}",
+        "",
+        "Recall cues:",
+        *[f"- {cue}" for cue in card.recall_cues],
+        "",
+        "Stable memory:",
+        card.stable_memory,
+        "",
+        "Best evidence excerpts:",
+    ]
+    if hits:
+        lines.extend(format_excerpt(msg, max_chars=700) for _score, msg in hits)
+    else:
+        lines.append("- No matching legacy session excerpt found by current terms.")
+    return "\n".join(lines)
+
+
 def export_cards(args: argparse.Namespace) -> int:
     old_home = old_home_from_args(args)
     hermes_home = hermes_home_from_args(args)
@@ -265,6 +292,92 @@ def export_cards(args: argparse.Namespace) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(text, encoding="utf-8")
     print(f"wrote={output}")
+    return 0
+
+
+def import_cards_session(args: argparse.Namespace) -> int:
+    old_home = old_home_from_args(args)
+    db_path = hermes_state_db_from_args(args)
+    if not db_path.exists():
+        raise SystemExit(f"missing Hermes state.db: {db_path}")
+
+    session_prefix = "chimera_legacy_card:"
+    backup = db_path.with_suffix(db_path.suffix + ".bak.s13-108")
+    if args.write and not backup.exists():
+        shutil.copy2(db_path, backup)
+
+    rows = []
+    base_ts = datetime.now(timezone.utc).timestamp()
+    for index, card in enumerate(CARDS):
+        session_id = f"{session_prefix}{card.card_id}"
+        content = build_card_session_content(old_home, card, max_hits=args.max_hits)
+        rows.append((session_id, card, content, base_ts + index))
+
+    if not args.write:
+        print(f"dry_run=1 state_db={db_path}")
+        for session_id, card, content, _ts in rows:
+            print(f"session_id={session_id} title={card.title} chars={len(content)}")
+        return 0
+
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("PRAGMA foreign_keys=ON")
+        old_ids = [
+            row[0]
+            for row in conn.execute(
+                "SELECT id FROM sessions WHERE id LIKE ?",
+                (f"{session_prefix}%",),
+            ).fetchall()
+        ]
+        for sid in old_ids:
+            conn.execute("DELETE FROM messages WHERE session_id = ?", (sid,))
+            conn.execute("DELETE FROM sessions WHERE id = ?", (sid,))
+
+        for session_id, card, content, ts in rows:
+            conn.execute(
+                """
+                INSERT INTO sessions (
+                    id, source, user_id, model, started_at, ended_at,
+                    end_reason, message_count, tool_call_count, title
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    "chimera_legacy",
+                    "sourcefire",
+                    "chimera-legacy-memory-card",
+                    ts,
+                    ts,
+                    "imported",
+                    2,
+                    0,
+                    f"Chimera legacy memory: {card.title}",
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO messages (session_id, role, content, timestamp, active)
+                VALUES (?, ?, ?, ?, 1)
+                """,
+                (
+                    session_id,
+                    "user",
+                    f"Recall old Chimera/Scout memory card: {card.title}. Cues: {', '.join(card.recall_cues)}",
+                    ts,
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO messages (session_id, role, content, timestamp, active)
+                VALUES (?, ?, ?, ?, 1)
+                """,
+                (session_id, "assistant", content, ts + 0.001),
+            )
+        conn.commit()
+
+    print(f"imported={len(rows)} state_db={db_path} backup={backup}")
+    for session_id, card, _content, _ts in rows:
+        print(f"- {session_id} :: {card.title}")
     return 0
 
 
@@ -308,6 +421,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_export.add_argument("--max-hits", type=int, default=4)
     p_export.add_argument("--write", action="store_true")
 
+    p_import = sub.add_parser("import-cards-session", help="Import memory cards as synthetic Hermes sessions for session_search")
+    p_import.add_argument("--state-db", default="")
+    p_import.add_argument("--max-hits", type=int, default=2)
+    p_import.add_argument("--write", action="store_true")
+
     p_ptr = sub.add_parser("install-pointer", help="Add card index pointer to MEMORY.md")
     p_ptr.add_argument("--memory-path", default="")
     p_ptr.add_argument("--write", action="store_true")
@@ -323,6 +441,8 @@ def main(argv: list[str] | None = None) -> int:
         return search(args)
     if args.command == "export-cards":
         return export_cards(args)
+    if args.command == "import-cards-session":
+        return import_cards_session(args)
     if args.command == "install-pointer":
         return install_pointer(args)
     parser.error(f"unknown command: {args.command}")
