@@ -117,12 +117,12 @@ S13.100 sets up later evaluation against these dimensions:
 
 ## Follow-Up Packages
 
-S13.101: Hermes isolated install and profile setup.
+S13.101: Hermes isolated install, profile setup, and memory migration baseline.
 
-S13.102: Gateway evaluation with one controlled messaging channel.
+S13.102: Chimera skill migration through an external armory, starting with Tavily/web-search, disabled prod-release ops, and one project skill skeleton.
 
 S13.103: Memory and session-search backtest against Chimera historical cases.
 
-S13.104: Chimera skill migration spike for Tavily/web-search and one finance/intel workflow.
+S13.104: Gateway evaluation with one controlled messaging channel.
 
 S13.105: Production cutover design, rollback, and operator runbook if S13.101-S13.104 pass.
