@@ -6,6 +6,42 @@ This wrapper should behave like the installed `hermes` command, including
 subcommands such as `gateway`, `cron`, and `doctor`.
 """
 
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parent
+
+
+def _local_venv_python(root: Path) -> Path:
+    if os.name == "nt":
+        return root / ".venv" / "Scripts" / "python.exe"
+    return root / ".venv" / "bin" / "python"
+
+
+def _maybe_reexec_into_local_venv() -> None:
+    root = _repo_root()
+    venv_dir = root / ".venv"
+    venv_python = _local_venv_python(root)
+    if not venv_python.exists():
+        return
+
+    try:
+        in_local_venv = Path(sys.prefix).resolve() == venv_dir.resolve()
+    except OSError:
+        in_local_venv = False
+    if in_local_venv:
+        return
+
+    os.execv(str(venv_python), [str(venv_python), str(root / "hermes"), *sys.argv[1:]])
+
+
 if __name__ == "__main__":
+    _maybe_reexec_into_local_venv()
     from hermes_cli.main import main
+
     main()
