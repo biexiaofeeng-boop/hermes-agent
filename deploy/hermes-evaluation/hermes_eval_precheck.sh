@@ -32,6 +32,11 @@ ok() { echo "[OK] $*"; }
 warn() { echo "[WARN] $*"; warnings=$((warnings + 1)); }
 fail() { echo "[FAIL] $*"; failures=$((failures + 1)); }
 
+normalize_github_remote() {
+  local url="${1:-}"
+  printf '%s' "$url" | sed -E 's#^https?://##; s#^git@([^:]+):#\1/#; s#\.git$##'
+}
+
 cd "$ROOT_DIR"
 
 branch="$(git branch --show-current 2>/dev/null || true)"
@@ -40,12 +45,16 @@ ok "git branch=${branch:-detached} head=${head:-unknown}"
 
 origin="$(git remote get-url origin 2>/dev/null || true)"
 upstream="$(git remote get-url upstream 2>/dev/null || true)"
-if [ "$origin" = "$EXPECTED_ORIGIN" ]; then
+origin_norm="$(normalize_github_remote "$origin")"
+expected_origin_norm="$(normalize_github_remote "$EXPECTED_ORIGIN")"
+upstream_norm="$(normalize_github_remote "$upstream")"
+expected_upstream_norm="$(normalize_github_remote "$EXPECTED_UPSTREAM")"
+if [ "$origin_norm" = "$expected_origin_norm" ]; then
   ok "origin=$origin"
 else
   fail "origin mismatch: got '${origin:-missing}', expected '$EXPECTED_ORIGIN'"
 fi
-if [ "$upstream" = "$EXPECTED_UPSTREAM" ]; then
+if [ "$upstream_norm" = "$expected_upstream_norm" ]; then
   ok "upstream=$upstream"
 else
   warn "upstream mismatch: got '${upstream:-missing}', expected '$EXPECTED_UPSTREAM'"
